@@ -16,16 +16,13 @@ List<string> cardDeck = BuildDeck();
 Debug.Assert(cardDeck.Count == 52);
 Debug.Assert(cardDeck.Contains("D13"));
 
-// Check if card is returned and if returned card is properly removed from the deck
-string card = DrawCard(cardDeck, rng);
-Debug.Assert(card != null);
-Console.WriteLine(card);
-Debug.Assert(cardDeck.Contains(card) == false);
+(char suit, int value) card = DrawCard(cardDeck, rng);                    // Draws a card, parses it to a suit and value tuple
+Debug.Assert("HDSC".Contains(card.suit));                                     // Checks that the suit and values are valid
+Debug.Assert(card.value <= 14 && card.value >= 2);
+Debug.Assert(cardDeck.Contains($"{card.suit}{card.value}") == false);     // Checks that the card was removed from the deck list
+Console.WriteLine($"Suit: {card.suit} Value: {card.value}");              // Debug print
 
-var (currentCardSuit, currentCardVal) = parseCard(card);
-Debug.Assert("HDSC".Contains(currentCardSuit));
-Debug.Assert(currentCardVal <= 14 || currentCardVal >= 2);
-Console.WriteLine($"Suit: {currentCardSuit} card value: {currentCardVal}");
+
 
 
 
@@ -72,35 +69,31 @@ static List<string> BuildDeck()
 {
     List<string> deck = [];
     
-    // Card values with Aces high at 14
-    int[] cardValues = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+    // Suits
     char[] cardSuits = ['H', 'D', 'S', 'C'];
 
-    // For every suit, we add a string that combines the suit char and value of the card
+    // For every suit, we add a string that combines the suit char and a number from 2 to 14 for the value
     foreach (char suit in cardSuits)
     {
-        for (int i = 0; i < cardValues.Length; i++)
+        for (int value = 2; value <= 14; value++)
         {
-            deck.Add($"{suit}{cardValues[i]}");
+            deck.Add($"{suit}{value}");
         }
     }
 
     return deck;
 }
 
-static string DrawCard(List<string> deck, Random rng)
+// Draws a card, parses it to a (char, int) tuple, removes it from the deck, returns the tuple
+static (char, int) DrawCard(List<string> deck, Random rng)
 {
     // Pick a random card
     int index = rng.Next(deck.Count);
     string card = deck[index];
 
-    // return the card and remove it from the deck
+    // remove the card from the deck, can't draw it again until shuffled
     deck.RemoveAt(index);
-    return card;
-}
 
-static (char, int) parseCard(string card)
-{
     // first index is a char to indicate suit
     char suit = card[0];
     // Retrieves the rest of the string after the suit character, tries to parse it to an int
@@ -109,4 +102,18 @@ static (char, int) parseCard(string card)
     // If it breaks somehow, give them an ace for fun
     else
         return ('S', 14);
+}
+
+// Figures out where the card we drew should be dealt
+static void DealCard((char,int) cardToDeal, List<(char, int)> dealerHand, List<(char, int)> playerHand)
+{
+    // If the player has no cards, start there
+    if (playerHand.Count == 0)
+        playerHand.Add(cardToDeal);
+    // If the player has cards, do they have more or less than the dealer?
+    else if (playerHand.Count != 0)
+        if (playerHand.Count > dealerHand.Count)
+            dealerHand.Add(cardToDeal);
+        else
+            playerHand.Add(cardToDeal);
 }
