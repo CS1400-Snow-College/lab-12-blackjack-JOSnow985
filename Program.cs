@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Text;
 
-drawHeader();
+Console.Title = "Console Blackjack";
 Random rng = new Random();
 
 // Loads player list
@@ -17,11 +17,12 @@ Debug.Assert(cardDeck.Count == 52);
 Debug.Assert(cardDeck.Contains("D13"));
 
 (char suit, int value) card = DrawCard(cardDeck, rng);                    // Draws a card, parses it to a suit and value tuple
-Debug.Assert("HDSC".Contains(card.suit));                                     // Checks that the suit and values are valid
+Debug.Assert("HDSC".Contains(card.suit));                                 // Checks that the suit and values are valid
 Debug.Assert(card.value <= 14 && card.value >= 2);
 Debug.Assert(cardDeck.Contains($"{card.suit}{card.value}") == false);     // Checks that the card was removed from the deck list
 Console.WriteLine($"Suit: {card.suit} Value: {card.value}");              // Debug print
 
+var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
 
 
 
@@ -36,17 +37,66 @@ static void drawHeader()
 // Loads csv into a list of lists of strings, splits by ,
 static List<List<string>> loadPlayerFile(string filepath)
 {
-    List<List<string>> dataList = [];
+    List<List<string>> playerList = [];
     if (File.Exists(filepath))
     {
-        dataList = File.ReadAllLines(filepath).Select(line => line.Split(',').ToList()).ToList();
-        return dataList;
+        // Name, money, busts, hands played
+        playerList = File.ReadAllLines(filepath).Select(line => line.Split(',').ToList()).ToList();
+        return playerList;
     }
     // If there's no player file, write an empty one and return the empty list
     else
     {
     File.WriteAllLines(filepath, []);
-        return dataList;
+        return playerList;
+    }
+}
+
+static (List<string>, string) findPlayer(List<List<string>> playerList, string filepath)
+{
+    while (true)
+    {
+        Console.Clear();
+        Console.WriteLine("~The dealer at the blackjack table flawlessly springs the deck from one hand to the other as you approach~");
+        Console.WriteLine("Dealer: Want to play a hand? What's your name?");
+        Console.Write("\nYour name:  ");
+        string? playerNameInput = Console.ReadLine();
+        if (string.IsNullOrEmpty(playerNameInput) == false)
+        {
+            playerNameInput = playerNameInput.Trim().ToLowerInvariant();
+            string playerNameCapitalized;
+            for (int index = 0; index < playerList.Count; index++)
+            {
+                if (playerNameInput.Equals(playerList[index][0]) == true)
+                {
+                    playerNameCapitalized = char.ToUpperInvariant(playerList[index][0][0]) + playerList[index][0][1..];
+                    Console.WriteLine($"Dealer: Ah, right! {playerNameCapitalized}!");
+                    Console.WriteLine($"Dealer: I think you've got ${playerList[index][1]}, right?");
+                    Console.WriteLine($"~several chips glide across the felt, they add up to ${playerList[index][1]}~");
+                    Console.Write("\nPress any key to continue...");
+                    Console.ReadKey(true);
+                    return (playerList[index], playerNameCapitalized);
+                }
+            }
+            Console.Clear();
+            List<string> newPlayerProfile = [playerNameInput, "100.00", "0", "0"];
+            playerList.Add(newPlayerProfile);
+            playerNameCapitalized = char.ToUpperInvariant(playerList[^1][0][0]) + playerList[^1][0][1..];
+            savePlayerFile(filepath, playerList);
+            Console.WriteLine($"Dealer: Hm, I don't think you've played at my table before, {playerNameCapitalized}.");
+            Console.WriteLine("Dealer: How about we start you off with a hundred?");
+            Console.WriteLine("~several chips glide across the felt, they add up to $100.00~");
+            Console.Write("\nPress any key to continue...");
+            Console.ReadKey(true);
+            return (newPlayerProfile, playerNameCapitalized);
+        }
+        else 
+        {
+            Console.WriteLine("\n~The dealer loudly shuffles the deck over your invalid input~");
+            Console.WriteLine("Dealer: Oh, sorry, what was that?");
+            Console.Write("Press any key to try telling him your name again... ");
+            Console.ReadKey(true);
+        }
     }
 }
 
