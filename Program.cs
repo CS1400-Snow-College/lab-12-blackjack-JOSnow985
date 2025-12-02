@@ -3,20 +3,18 @@ using System.Diagnostics;
 using System.Text;
 
 drawHeader();
-
-List<string> cardDeck = BuildDeck();
-
-Debug.Assert(cardDeck.Count == 52);
-Debug.Assert(cardDeck.Contains("D13"));
-
 Random rng = new Random();
 
-// string[] cardFaces = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-// Loads player
+// Loads player list
 string playerFilePath = "playerFile.csv";
 List<List<string>> playerList = loadPlayerFile(playerFilePath);
 Debug.Assert(File.Exists(playerFilePath));
 Debug.Assert(playerList != null);
+
+// Builds the deck
+List<string> cardDeck = BuildDeck();
+Debug.Assert(cardDeck.Count == 52);
+Debug.Assert(cardDeck.Contains("D13"));
 
 // Check if card is returned and if returned card is properly removed from the deck
 string card = DrawCard(cardDeck, rng);
@@ -31,6 +29,7 @@ Console.WriteLine($"Suit: {currentCardSuit} card value: {currentCardVal}");
 
 
 
+// Methods
 static void drawHeader()
 {
     Console.Clear();
@@ -46,6 +45,7 @@ static List<List<string>> loadPlayerFile(string filepath)
         dataList = File.ReadAllLines(filepath).Select(line => line.Split(',').ToList()).ToList();
         return dataList;
     }
+    // If there's no player file, write an empty one and return the empty list
     else
     {
     File.WriteAllLines(filepath, []);
@@ -76,6 +76,7 @@ static List<string> BuildDeck()
     int[] cardValues = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
     char[] cardSuits = ['H', 'D', 'S', 'C'];
 
+    // For every suit, we add a string that combines the suit char and value of the card
     foreach (char suit in cardSuits)
     {
         for (int i = 0; i < cardValues.Length; i++)
@@ -93,17 +94,19 @@ static string DrawCard(List<string> deck, Random rng)
     int index = rng.Next(deck.Count);
     string card = deck[index];
 
-    // return the card and remove it from the list
+    // return the card and remove it from the deck
     deck.RemoveAt(index);
     return card;
 }
 
 static (char, int) parseCard(string card)
 {
+    // first index is a char to indicate suit
     char suit = card[0];
     // Retrieves the rest of the string after the suit character, tries to parse it to an int
     if (int.TryParse(card[1..], out int cardValue))
         return (suit, cardValue);
+    // If it breaks somehow, give them an ace for fun
     else
         return ('S', 14);
 }
