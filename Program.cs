@@ -9,6 +9,16 @@ List<string> cardDeck = BuildDeck();
 Debug.Assert(cardDeck.Count == 52);
 Debug.Assert(cardDeck.Contains("D13"));
 
+Random rng = new Random();
+
+// string[] cardFaces = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+
+// Check if card is returned and if returned card is properly removed from the deck
+string card = DrawCard(cardDeck, rng);
+Debug.Assert(card != null);
+Console.WriteLine(card);
+Debug.Assert(cardDeck.Contains(card) == false);
+
 static List<string> BuildDeck()
 {
     List<string> deck = [];
@@ -26,4 +36,15 @@ static List<string> BuildDeck()
     }
 
     return deck;
+}
+
+static string DrawCard(List<string> deck, Random rng)
+{
+    // Pick a random card
+    int index = rng.Next(deck.Count);
+    string card = deck[index];
+
+    // return the card and remove it from the list
+    deck.RemoveAt(index);
+    return card;
 }
