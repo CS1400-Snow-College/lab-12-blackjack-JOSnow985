@@ -1,5 +1,6 @@
 ﻿// Jaden Olvera, CS-1400, Lab 12 Blackjack
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 Console.Title = "Console Blackjack";
@@ -8,22 +9,49 @@ Random rng = new Random();
 // Loads player list
 string playerFilePath = "playerFile.csv";
 List<List<string>> playerList = loadPlayerFile(playerFilePath);
-Debug.Assert(File.Exists(playerFilePath));
-Debug.Assert(playerList != null);
+// Debug.Assert(File.Exists(playerFilePath));
+// Debug.Assert(playerList != null);
 
 // Builds the deck
 List<string> cardDeck = BuildDeck();
-Debug.Assert(cardDeck.Count == 52);
-Debug.Assert(cardDeck.Contains("D13"));
+// Debug.Assert(cardDeck.Count == 52);
+// Debug.Assert(cardDeck.Contains("D13"));
 
-(char suit, int value) card = DrawCard(cardDeck, rng);                    // Draws a card, parses it to a suit and value tuple
-Debug.Assert("HDSC".Contains(card.suit));                                 // Checks that the suit and values are valid
-Debug.Assert(card.value <= 14 && card.value >= 2);
-Debug.Assert(cardDeck.Contains($"{card.suit}{card.value}") == false);     // Checks that the card was removed from the deck list
-Console.WriteLine($"Suit: {card.suit} Value: {card.value}");              // Debug print
+// (char suit, int value) card = DrawCard(cardDeck, rng);                    // Draws a card, parses it to a suit and value tuple
+// Debug.Assert("HDSC".Contains(card.suit));                                 // Checks that the suit and values are valid
+// Debug.Assert(card.value <= 14 && card.value >= 2);
+// Debug.Assert(cardDeck.Contains($"{card.suit}{card.value}") == false);     // Checks that the card was removed from the deck list
+// Console.WriteLine($"Suit: {card.suit} Value: {card.value}");              // Debug print
 
+// Figure out who is playing
 var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
 
+bool quitting = false;
+while (quitting == false)
+{
+    List<(char, int)> playerHand = [];
+    List<(char, int)> dealerHand = [];
+    bool gameOver = false;
+    while (dealerHand.Count < 2)
+        DealCards(cardDeck, rng, dealerHand, playerHand);
+    int playerHandValue = 0;
+    int dealerHandValue = 0;
+    
+    while (gameOver == false)
+    {
+        (playerHandValue, dealerHandValue) = GetHandValues(playerHand, dealerHand);
+        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, dealerHand, dealerHandValue);
+        string test = Console.ReadKey().KeyChar switch
+        {
+            'h' => "Hit",
+            's' => "Stand",
+            'd' => "Double Down",
+            _ => "anything else"
+        };
+        Console.WriteLine(test);
+    }
+
+}
 
 
 
@@ -31,7 +59,8 @@ var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
 static void drawHeader()
 {
     Console.Clear();
-    Console.WriteLine("Console Blackjack");
+    Console.WriteLine("\uD83C\uDCA0 \uD83C\uDCA0 \uD83C\uDCA0 BLACKJACK\uD83C\uDCA0 \uD83C\uDCA0 \uD83C\uDCA0");
+    Console.WriteLine();
 }
 
 // Loads csv into a list of lists of strings, splits by ,
@@ -56,7 +85,7 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
 {
     while (true)
     {
-        Console.Clear();
+        drawHeader();
         Console.WriteLine("~The dealer at the blackjack table flawlessly springs the deck from one hand to the other as you approach~");
         Console.WriteLine("Dealer: Want to play a hand? What's your name?");
         Console.Write("\nYour name:  ");
@@ -70,6 +99,7 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
                 if (playerNameInput.Equals(playerList[index][0]) == true)
                 {
                     playerNameCapitalized = char.ToUpperInvariant(playerList[index][0][0]) + playerList[index][0][1..];
+                    drawHeader();
                     Console.WriteLine($"Dealer: Ah, right! {playerNameCapitalized}!");
                     Console.WriteLine($"Dealer: I think you've got ${playerList[index][1]}, right?");
                     Console.WriteLine($"~several chips glide across the felt, they add up to ${playerList[index][1]}~");
@@ -78,7 +108,7 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
                     return (playerList[index], playerNameCapitalized);
                 }
             }
-            Console.Clear();
+            drawHeader();
             List<string> newPlayerProfile = [playerNameInput, "100.00", "0", "0"];
             playerList.Add(newPlayerProfile);
             playerNameCapitalized = char.ToUpperInvariant(playerList[^1][0][0]) + playerList[^1][0][1..];
@@ -154,9 +184,10 @@ static (char, int) DrawCard(List<string> deck, Random rng)
         return ('S', 14);
 }
 
-// Figures out where the card we drew should be dealt
-static void DealCard((char,int) cardToDeal, List<(char, int)> dealerHand, List<(char, int)> playerHand)
+// Calls DrawCard and deals the card
+static void DealCards(List<string> deck, Random rng, List<(char, int)> dealerHand, List<(char, int)> playerHand)
 {
+    (char, int) cardToDeal = DrawCard(deck, rng);
     // If the player has no cards, start there
     if (playerHand.Count == 0)
         playerHand.Add(cardToDeal);
@@ -166,4 +197,89 @@ static void DealCard((char,int) cardToDeal, List<(char, int)> dealerHand, List<(
             dealerHand.Add(cardToDeal);
         else
             playerHand.Add(cardToDeal);
+}
+
+// Builds a hex to draw a card character for the card on the table
+static void DisplayCard((char suit,int value) card)
+{
+    string suitPart = card.suit switch
+    {
+        'H' => "B",
+        'D' => "C",
+        'S' => "A",
+        'C' => "D",
+        _ => "?",
+    };
+    string valuePart = card.value switch
+    {
+        10 => "A",
+        11 => "B",
+        12 => "D",
+        13 => "E",
+        14 => "1",
+        _ => $"{card.value}"
+    };
+    string stringConvert = $"1F0{suitPart}{valuePart}";
+    string cardPrint = char.ConvertFromUtf32(int.Parse(stringConvert, NumberStyles.HexNumber));
+    Console.Write($"{cardPrint} ");
+}
+
+// Handles printing the table out, checking player money, who has what cards to print
+static void DisplayTable(List<string> playerProfile, string playerName, List<(char, int)> playerHand, int playerHandValue, List<(char, int)> dealerHand, int dealerHandValue)
+{
+    drawHeader();
+    Console.WriteLine($"{playerName}'s Bank: ${playerProfile[1]}");
+    Console.WriteLine();
+    if (dealerHand.Count != 0)
+    {
+        Console.WriteLine($"Dealer's Hand:");
+        foreach ((char, int) card in dealerHand)
+            DisplayCard(card);
+        Console.WriteLine();
+    }
+    else
+        Console.WriteLine("\n");
+    if (playerHand.Count != 0)
+    {
+        Console.WriteLine($"{playerName}'s Hand:");
+        foreach ((char, int) card in playerHand)
+            DisplayCard(card);
+        Console.WriteLine("\nOptions: <(H)it>   <(S)tand>   <(D)ouble Down>");
+    }
+    else
+        Console.WriteLine("\n");
+}
+
+static (int playerTotal, int dealerTotal) GetHandValues(List<(char suit, int value)> playerHand, List<(char suit, int value)> dealerHand)
+{
+    static int SumHand(List<(char suit, int value)> hand)
+    {
+        int handValue = 0;
+        int holdingAces = 0;
+
+        foreach (var card in hand)
+        {
+            int worth = card.value;
+            // J (11) / Q (12) / K (13) are worth 10
+            if (worth >= 11 && worth <= 13) 
+                handValue += 10;   
+            // Treat Aces as worth 11 for now
+            else if (worth == 14) 
+            { 
+                handValue += 11; 
+                holdingAces++; 
+            }
+            else handValue += worth; // 2..10
+        }
+
+        // If we're over 21 and have at least one ace, drop their value until we're out of aces
+        while (handValue > 21 && holdingAces > 0)
+        {
+            handValue -= 10;
+            holdingAces--;
+        }
+
+        return handValue;
+    }
+    return (SumHand(playerHand), SumHand(dealerHand));
 }
