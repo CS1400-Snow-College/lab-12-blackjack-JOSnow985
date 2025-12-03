@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "mS8EyY3xpAO1JsswGmWl6khQ1kUa9mfza/dN6htIWGC4LAA5Y/4T7P50g5rtUdhvfF9hSXIg1s0+K6HxdBFa+g==",
+  "dgSpecHash": "hSRUyeENxxC+TwUjJvVuU1A7uLbeFgV/8HGb4PK1z9dIzmxLtwqEPQq9zPTzVEZwv7BoFoFVu0zpbS0UX8MgcQ==",
   "success": true,
   "projectFilePath": "/home/nobaraneko/Documents/CS1400/lab-12-blackjack-JOSnow985/lab-12-blackjack-JOSnow985.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/nobaraneko/.nuget/packages/microsoft.net.illink.tasks/8.0.21/microsoft.net.illink.tasks.8.0.21.nupkg.sha512",
+    "/home/nobaraneko/.nuget/packages/microsoft.netcore.app.runtime.win-x64/8.0.21/microsoft.netcore.app.runtime.win-x64.8.0.21.nupkg.sha512",
+    "/home/nobaraneko/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/8.0.21/microsoft.aspnetcore.app.runtime.win-x64.8.0.21.nupkg.sha512",
+    "/home/nobaraneko/.nuget/packages/microsoft.netcore.app.host.win-x64/8.0.21/microsoft.netcore.app.host.win-x64.8.0.21.nupkg.sha512"
+  ],
   "logs": []
 }

@@ -32,25 +32,169 @@ while (quitting == false)
     List<(char, int)> playerHand = [];
     List<(char, int)> dealerHand = [];
     bool gameOver = false;
+
+    // Collect bet and save player file so the bet is taken
+    decimal playerBet = betPrompt(playerProfile, playerName);
+    savePlayerFile(playerFilePath, playerList);
+
+    // Deal initial cards
     while (dealerHand.Count < 2)
         DealCards(cardDeck, rng, dealerHand, playerHand);
+
     int playerHandValue = 0;
     int dealerHandValue = 0;
+    bool dealerTurn = false;
+    int playerBlackjackCheck = 0;
     
+    // Main game loop
     while (gameOver == false)
     {
         (playerHandValue, dealerHandValue) = GetHandValues(playerHand, dealerHand);
-        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, dealerHand, dealerHandValue);
-        string test = Console.ReadKey().KeyChar switch
+        if (playerBlackjackCheck == 0)
         {
-            'h' => "Hit",
-            's' => "Stand",
-            'd' => "Double Down",
-            _ => "anything else"
-        };
-        Console.WriteLine(test);
+            if (playerHandValue == 21)
+            {
+                // pay out 3:2
+                playerBlackjackCheck = 2;
+                return;
+            }
+            else
+                playerBlackjackCheck = 1;
+        }
+        if (playerHandValue > 21)
+        {
+            gameOver = true;
+            dealerTurn = true;
+        }
+        else if (playerHandValue == 21)
+            dealerTurn = true;
+        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, playerBet, dealerHand, dealerHandValue, dealerTurn);
+        if (gameOver == false && dealerTurn == false)
+        {
+            bool selectionMade = false;
+            while (selectionMade == false)
+            {
+                char optionSelect = Console.ReadKey(true).KeyChar;
+                switch (optionSelect)
+                {
+                    case 'h':
+                    case 'H':
+                        playerHand.Add(DrawCard(cardDeck, rng));
+                        selectionMade = true;
+                        break;
+                    case 's':
+                    case 'S':
+                        dealerTurn = true;
+                        selectionMade = true;
+                        break;
+                    case 'd':
+                    case 'D':
+                        playerHand.Add(DrawCard(cardDeck, rng));
+                        dealerTurn = true;
+                        selectionMade = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        else
+        {
+            Thread.Sleep(1500);
+            if (playerHandValue > 21)
+                continue;
+            else if (playerHandValue == dealerHandValue)
+                gameOver = true;
+            else if (dealerHandValue > playerHandValue)
+                gameOver = true;
+            else if (dealerHandValue < playerHandValue)
+                dealerHand.Add(DrawCard(cardDeck, rng));
+        }
+    }
+    // Conclusion of the round handling
+    drawHeader();
+    Console.WriteLine($"Dealer's Total: {dealerHandValue}   vs   {playerName}'s Total: {playerHandValue}\n");
+    // If the player got blackjack
+    if (playerBlackjackCheck == 2)
+    {
+        decimal winnings = playerBet * 1.5m;
+        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
+        Console.WriteLine("Dealer: You got blackjack! That's a 3:2 payout at this table!\n");
+        Console.WriteLine($"~More chips slide towards you, your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
+    }
+    // If the dealer had worse cards but the player busted
+    else if (dealerHandValue < playerHandValue && playerHandValue > 21)
+    {
+        Console.WriteLine("Dealer: Sorry, the house wins this time.\n");
+        Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
+    }
+    // If the dealer had better cards and didn't bust
+    else if ((dealerHandValue > playerHandValue && dealerHandValue <= 21) || (dealerHandValue < playerHandValue && playerHandValue > 21))
+    {
+        Console.WriteLine("Dealer: Sorry, the house wins this time.\n");
+        Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
+    }
+    // If the dealer and the player matched, push
+    else if (dealerHandValue == playerHandValue)
+    {
+        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet);
+        Console.WriteLine("Dealer: A push, at least you didn't lose your bet, right?");
+        Console.WriteLine($"~Your bet of ${playerBet:F2} is returned to your bank~");
+    }
+    // Otherwise
+    else
+    {
+        decimal winnings = playerBet;
+        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
+        Console.WriteLine("Dealer: That's a win for you, here are your winnings!");
+        Console.WriteLine($"~The dealer stacks up an equal amount of chips to your bet and slides them to you~");
+        Console.WriteLine($"~Your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
+    }
+    savePlayerFile(playerFilePath, playerList);
+    Console.WriteLine($"{playerName}'s Bank: {decimal.Parse(playerProfile[1]):F2}");
+    Console.WriteLine("\nPress any key to continue...");
+    Console.ReadKey(true);
+    
+    // If the player is broke, give them 50 more
+    if (decimal.Parse(playerProfile[1]) <= 0m)
+    {
+        drawHeader();
+        playerProfile[1] = "50.00";
+        savePlayerFile(playerFilePath, playerList);
+        Console.WriteLine("Dealer: Don't worry, we all have runs of bad luck, you can keep playing!");
+        Console.WriteLine("~Your bank has been refilled to $50.00~");
+        Console.WriteLine("\nPress any key to continue...");
+        Console.ReadKey(true);
     }
 
+    drawHeader();
+    Console.WriteLine("Dealer: Want to play another hand?");
+    Console.WriteLine("~The dealer starts shuffling the cards while waiting for your decision~");
+    Console.WriteLine("\nOptions: <(Y)es>   <(N)o>");
+    bool choiceMade = false;
+    while (choiceMade == false)
+    {
+        char playAgain = Console.ReadKey(true).KeyChar;
+        switch (playAgain)
+        {
+            case 'y':
+            case 'Y':
+                choiceMade = true;
+                break;
+            case 'n':
+            case 'N':
+                choiceMade = true;
+                quitting = true;
+                break;
+            default:
+                break;
+        }
+    }
+    if (quitting)
+    {
+        Console.Clear();
+        Console.WriteLine("\nGoodbye!");
+    }
 }
 
 
@@ -164,6 +308,37 @@ static List<string> BuildDeck()
     return deck;
 }
 
+static decimal betPrompt(List<string> playerProfile, string playerName)
+{
+    decimal playerCurrentMoney = decimal.Parse(playerProfile[1]);
+    while (true)
+    {
+        drawHeader();
+        Console.WriteLine("Dealer: How much are you betting this round?\n");
+        Console.WriteLine($"{playerName}'s Bank: ${playerCurrentMoney:F2}");
+        Console.WriteLine($"You can bet from $0.01 to ${playerCurrentMoney:F2}");
+        Console.Write("Your Bet:  $");
+        if (decimal.TryParse(Console.ReadLine(), out decimal playerBet))
+        {
+            if (playerBet < 0.01m)
+                Console.WriteLine("You have to bet something at least $0.01.");
+            else if (playerBet > playerCurrentMoney)
+                Console.WriteLine("You don't have that much!");
+            else
+            {
+                playerProfile[1] = Convert.ToString(playerCurrentMoney - playerBet);
+                return playerBet;
+            }
+        }
+        else
+        {
+            Console.WriteLine("That's not a proper bet, please try again.");
+        }
+        Console.WriteLine("Press any key to continue...");
+        Console.ReadKey(true);
+    }
+}
+
 // Draws a card, parses it to a (char, int) tuple, removes it from the deck, returns the tuple
 static (char, int) DrawCard(List<string> deck, Random rng)
 {
@@ -225,16 +400,22 @@ static void DisplayCard((char suit,int value) card)
 }
 
 // Handles printing the table out, checking player money, who has what cards to print
-static void DisplayTable(List<string> playerProfile, string playerName, List<(char, int)> playerHand, int playerHandValue, List<(char, int)> dealerHand, int dealerHandValue)
+static void DisplayTable(List<string> playerProfile, string playerName, List<(char, int)> playerHand, int playerHandValue, decimal playerBet, List<(char, int)> dealerHand, int dealerHandValue, bool dealerTurn)
 {
     drawHeader();
-    Console.WriteLine($"{playerName}'s Bank: ${playerProfile[1]}");
+    Console.WriteLine($"{playerName}'s Bank: ${playerProfile[1]}     Bet: ${playerBet:F2}");
     Console.WriteLine();
     if (dealerHand.Count != 0)
     {
         Console.WriteLine($"Dealer's Hand:");
+        Console.Write($"Total: {dealerHandValue}   ");
         foreach ((char, int) card in dealerHand)
-            DisplayCard(card);
+        {
+            if (card == dealerHand[^1] && dealerTurn == false)
+                DisplayCard(('S', 0));
+            else
+                DisplayCard(card);
+        }
         Console.WriteLine();
     }
     else
@@ -242,9 +423,13 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
     if (playerHand.Count != 0)
     {
         Console.WriteLine($"{playerName}'s Hand:");
+        Console.Write($"Total: {playerHandValue}   ");
         foreach ((char, int) card in playerHand)
             DisplayCard(card);
-        Console.WriteLine("\nOptions: <(H)it>   <(S)tand>   <(D)ouble Down>");
+        if (dealerTurn == false)
+            Console.WriteLine("\nOptions: <(H)it>   <(S)tand>   <(D)ouble Down>");
+        else
+            Console.WriteLine("It's the dealer's turn...");
     }
     else
         Console.WriteLine("\n");
@@ -260,16 +445,19 @@ static (int playerTotal, int dealerTotal) GetHandValues(List<(char suit, int val
         foreach (var card in hand)
         {
             int worth = card.value;
+
             // J (11) / Q (12) / K (13) are worth 10
             if (worth >= 11 && worth <= 13) 
                 handValue += 10;   
+            
             // Treat Aces as worth 11 for now
             else if (worth == 14) 
             { 
                 handValue += 11; 
                 holdingAces++; 
             }
-            else handValue += worth; // 2..10
+            // Everything else is treated as it's identifying value
+            else handValue += worth;
         }
 
         // If we're over 21 and have at least one ace, drop their value until we're out of aces
