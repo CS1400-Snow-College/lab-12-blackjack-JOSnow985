@@ -9,7 +9,7 @@ string playerFilePath = "playerFile.csv";
 List<List<string>> playerList = loadPlayerFile(playerFilePath);
 
 // Figure out who is playing
-var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
+var (playerProfile, playerName, playerBankDecimal) = findPlayer(playerList, playerFilePath);
 
 bool quitting = false;
 while (quitting == false)
@@ -22,7 +22,7 @@ while (quitting == false)
     bool gameOver = false;
 
     // Collect bet amount
-    decimal playerBet = betPrompt(playerProfile, playerName);
+    (decimal playerBet, playerBankDecimal) = betPrompt(playerProfile, playerName, playerBankDecimal);
 
     // Deal initial cards
     while (dealerHand.Count < 2)
@@ -37,7 +37,7 @@ while (quitting == false)
     while (gameOver == false)
     {
         (playerHandValue, dealerHandValue) = GetHandValues(playerHand, dealerHand);
-        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, playerBet, dealerHand, dealerHandValue, dealerTurn);
+        DisplayTable(playerBankDecimal, playerName, playerHand, playerHandValue, playerBet, dealerHand, dealerHandValue, dealerTurn);
         // Check for blackjack on the first turn
         if (playerBlackjackCheck == 0)
         {
@@ -81,9 +81,9 @@ while (quitting == false)
                         break;
                     case 'd':
                     case 'D':
-                        if (playerHand.Count == 2 && decimal.Parse(playerProfile[1]) >= playerBet)
+                        if (playerHand.Count == 2 && playerBankDecimal >= playerBet)
                         {
-                        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) - playerBet);
+                        playerBankDecimal = playerBankDecimal - playerBet;
                         playerBet += playerBet;
                         playerHand.Add(DrawCard(cardDeck, rng));
                         dealerTurn = true;
@@ -116,7 +116,7 @@ while (quitting == false)
     if (playerBlackjackCheck == 2)
     {
         decimal winnings = playerBet * 1.5m;
-        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
+        playerBankDecimal = playerBankDecimal + playerBet + winnings;
         Console.WriteLine($"\nBlackjack! You win: ${winnings:F2}");
     }
     // If the player busted, or the dealer beat their hand without busting
@@ -127,30 +127,30 @@ while (quitting == false)
     // If the dealer and the player matched, push
     else if (dealerHandValue == playerHandValue)
     {
-        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet);
+        playerBankDecimal = playerBankDecimal + playerBet;
         Console.WriteLine($"\nPush: Your ${playerBet:F2} bet is returned.");
     }
     // Otherwise
     else
     {
         decimal winnings = playerBet;
-        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
+        playerBankDecimal = playerBankDecimal + playerBet + winnings;
         Console.WriteLine($"\nYou won ${winnings:F2}");
     }
     // If the player is broke, give them 50 more
-    if (decimal.Parse(playerProfile[1]) <= 0m)
+    if (playerBankDecimal <= 0m)
     {
-        playerProfile[1] = "50.00";
+        playerBankDecimal = 50.00m;
         Console.WriteLine("\nYou deposit $50 into your bank so you can keep playing.\nIf this were real you might have had to stop instead!");
     }
 
-    Console.WriteLine($"{playerName}'s Bank now has: ${decimal.Parse(playerProfile[1]):F2}");
+    Console.WriteLine($"{playerName}'s Bank now has: ${playerBankDecimal:F2}");
     Console.WriteLine("\nPress any key to continue...");
     Console.ReadKey(true);
 
     drawHeader();
     Console.WriteLine("Play another hand?");
-    Console.WriteLine($"{playerName}'s Bank now has: ${decimal.Parse(playerProfile[1]):F2}");
+    Console.WriteLine($"{playerName}'s Bank: ${playerBankDecimal:F2}");
     Console.WriteLine("\nOptions: <(Y)es>   <(N)o>");
     bool choiceMade = false;
     while (choiceMade == false)
@@ -173,6 +173,7 @@ while (quitting == false)
     }
     if (quitting)
     {
+        playerProfile[1] = Convert.ToString(playerBankDecimal);
         savePlayerFile(playerFilePath, playerList);
         Console.Clear();
         Console.WriteLine("\nGoodbye!");
@@ -207,7 +208,7 @@ static List<List<string>> loadPlayerFile(string filepath)
     }
 }
 
-static (List<string>, string) findPlayer(List<List<string>> playerList, string filepath)
+static (List<string> playerProfile, string playerName, decimal playerBankDecimal) findPlayer(List<List<string>> playerList, string filepath)
 {
     while (true)
     {
@@ -217,37 +218,40 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
         string? playerNameInput = Console.ReadLine();
         if (string.IsNullOrEmpty(playerNameInput) == false)
         {
+            // Whitespace trimmed and dropped to lowercase so names aren't case sensitive
             playerNameInput = playerNameInput.Trim().ToLowerInvariant();
-            string playerNameCapitalized;
+            // Try to capitalize their name so it looks nicer when we print it
+            string playerNameCapitalized = char.ToUpperInvariant(playerNameInput[0]) + playerNameInput[1..];
+            // Fallback bank value
+            decimal playerBankDecimal = 50.00m;
+            int playerIndex = -1;
             for (int index = 0; index < playerList.Count; index++)
             {
                 if (playerNameInput.Equals(playerList[index][0]) == true)
-                {
-                    // If their money count is zeroed, refill to 50
-                    if (decimal.Parse(playerList[index][1]) <= 0m)
-                    {
-                        playerList[index][1] = "50.00";
-                        savePlayerFile(filepath, playerList);
-                    }
-                    playerNameCapitalized = char.ToUpperInvariant(playerList[index][0][0]) + playerList[index][0][1..];
-                    drawHeader();
-                    Console.WriteLine($"Returning player: {playerNameCapitalized}");
-                    Console.WriteLine($"{playerNameCapitalized}'s Bank: ${playerList[index][1]}");
-                    Console.Write("\nPress any key to continue...");
-                    Console.ReadKey(true);
-                    return (playerList[index], playerNameCapitalized);
-                }
+                    playerIndex = index;
             }
             drawHeader();
-            List<string> newPlayerProfile = [playerNameInput, "100.00"];
-            playerList.Add(newPlayerProfile);
-            playerNameCapitalized = char.ToUpperInvariant(playerList[^1][0][0]) + playerList[^1][0][1..];
-            savePlayerFile(filepath, playerList);
-            Console.WriteLine($"New player: {playerNameCapitalized}");
-            Console.WriteLine($"Starting {playerNameCapitalized}'s Bank at: $100.00");
+            if (playerIndex != -1)
+            {
+                playerBankDecimal = decimal.Parse(playerList[playerIndex][1]);
+                // If their money count is zeroed, refill to 50
+                if (playerBankDecimal < 0m)
+                    playerBankDecimal = 50m;
+                Console.WriteLine($"Returning player: {playerNameCapitalized}");
+                Console.WriteLine($"{playerNameCapitalized}'s Bank: ${playerBankDecimal:F2}");
+            }
+            else
+            {
+                playerList.Add([playerNameInput, "100.00"]);
+                savePlayerFile(filepath, playerList);
+                playerIndex = playerList.Count - 1;
+                playerBankDecimal = 100m;
+                Console.WriteLine($"New player: {playerNameCapitalized}");
+                Console.WriteLine($"Starting {playerNameCapitalized}'s Bank at: $100.00");
+            }
             Console.Write("\nPress any key to continue...");
             Console.ReadKey(true);
-            return (newPlayerProfile, playerNameCapitalized);
+            return (playerList[playerIndex], playerNameCapitalized, playerBankDecimal);
         }
         else 
         {
@@ -292,26 +296,25 @@ static List<string> BuildDeck()
     return deck;
 }
 
-static decimal betPrompt(List<string> playerProfile, string playerName)
+static (decimal playerBet, decimal playerBankDecimal) betPrompt(List<string> playerProfile, string playerName, decimal playerBankDecimal)
 {
-    decimal playerCurrentMoney = decimal.Parse(playerProfile[1]);
     while (true)
     {
         drawHeader();
         Console.WriteLine("How much will you bet?\n");
-        Console.WriteLine($"{playerName}'s Bank: ${playerCurrentMoney:F2}");
-        Console.WriteLine($"You can bet from $0.01 to ${playerCurrentMoney:F2}");
+        Console.WriteLine($"{playerName}'s Bank: ${playerBankDecimal:F2}");
+        Console.WriteLine($"You can bet from $0.01 to ${playerBankDecimal:F2}");
         Console.Write("Your Bet:  $");
         if (decimal.TryParse(Console.ReadLine(), out decimal playerBet))
         {
             if (playerBet < 0.01m)
                 Console.WriteLine("You have to bet at least $0.01.");
-            else if (playerBet > playerCurrentMoney)
+            else if (playerBet > playerBankDecimal)
                 Console.WriteLine("You don't have that much!");
             else
             {
-                playerProfile[1] = Convert.ToString(playerCurrentMoney - playerBet);
-                return playerBet;
+                playerBankDecimal = playerBankDecimal - playerBet;
+                return (playerBet, playerBankDecimal);
             }
         }
         else
@@ -383,10 +386,10 @@ static void DisplayCard((char suit,int value) card)
 }
 
 // Handles printing the table out, checking player money, who has what cards to print
-static void DisplayTable(List<string> playerProfile, string playerName, List<(char, int)> playerHand, int playerHandValue, decimal playerBet, List<(char, int)> dealerHand, int dealerHandValue, bool dealerTurn)
+static void DisplayTable(decimal playerBankDecimal, string playerName, List<(char, int)> playerHand, int playerHandValue, decimal playerBet, List<(char, int)> dealerHand, int dealerHandValue, bool dealerTurn)
 {
     drawHeader();
-    Console.WriteLine($"{playerName}'s Bank: ${playerProfile[1]}     Bet: ${playerBet:F2}");
+    Console.WriteLine($"{playerName}'s Bank: ${playerBankDecimal:F2}     Bet: ${playerBet:F2}");
     Console.WriteLine();
     if (dealerHand.Count != 0)
     {
@@ -415,7 +418,7 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
         if (dealerTurn == false)
         {
             Console.Write("\nOptions: <(H)it>   <(S)tand>   ");
-            if (playerHand.Count == 2 && decimal.Parse(playerProfile[1]) >= playerBet)
+            if (playerHand.Count == 2 && playerBankDecimal >= playerBet)
                 Console.WriteLine("<(D)ouble Down>");
             else
                 Console.WriteLine();
