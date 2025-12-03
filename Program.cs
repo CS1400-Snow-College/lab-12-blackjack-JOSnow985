@@ -1,5 +1,4 @@
 ﻿// Jaden Olvera, CS-1400, Lab 12 Blackjack
-using System.Globalization;
 using System.Text;
 
 Console.Title = "Console Blackjack";
@@ -382,24 +381,23 @@ static void DisplayCard((char suit,int value) card)
 {
     string suitPart = card.suit switch
     {
-        'H' => "B",
-        'D' => "C",
-        'S' => "A",
-        'C' => "D",
-        _ => "?",
+        'H' => "\u2665",
+        'D' => "\u2666",
+        'S' => "\u2660",
+        'C' => "\u2663",
+        'X' => "",
+        _ => $"{card.suit}",
     };
     string valuePart = card.value switch
     {
-        10 => "A",
-        11 => "B",
-        12 => "D",
-        13 => "E",
-        14 => "1",
+        0 => "?",
+        11 => "J",
+        12 => "Q",
+        13 => "K",
+        14 => "A",
         _ => $"{card.value}"
     };
-    string stringConvert = $"1F0{suitPart}{valuePart}";
-    string cardPrint = char.ConvertFromUtf32(int.Parse(stringConvert, NumberStyles.HexNumber));
-    Console.Write($"{cardPrint} ");
+    Console.Write($"[{suitPart}{valuePart}]");
 }
 
 // Handles printing the table out, checking player money, who has what cards to print
@@ -418,7 +416,7 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
         foreach ((char, int) card in dealerHand)
         {
             if (card == dealerHand[^1] && dealerTurn == false)
-                DisplayCard(('S', 0));
+                DisplayCard(('X', 0));
             else
                 DisplayCard(card);
         }
