@@ -1,5 +1,4 @@
 ﻿// Jaden Olvera, CS-1400, Lab 12 Blackjack
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
@@ -9,19 +8,9 @@ Random rng = new Random();
 // Loads player list
 string playerFilePath = "playerFile.csv";
 List<List<string>> playerList = loadPlayerFile(playerFilePath);
-// Debug.Assert(File.Exists(playerFilePath));
-// Debug.Assert(playerList != null);
 
 // Builds the deck
 List<string> cardDeck = BuildDeck();
-// Debug.Assert(cardDeck.Count == 52);
-// Debug.Assert(cardDeck.Contains("D13"));
-
-// (char suit, int value) card = DrawCard(cardDeck, rng);                    // Draws a card, parses it to a suit and value tuple
-// Debug.Assert("HDSC".Contains(card.suit));                                 // Checks that the suit and values are valid
-// Debug.Assert(card.value <= 14 && card.value >= 2);
-// Debug.Assert(cardDeck.Contains($"{card.suit}{card.value}") == false);     // Checks that the card was removed from the deck list
-// Console.WriteLine($"Suit: {card.suit} Value: {card.value}");              // Debug print
 
 // Figure out who is playing
 var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
@@ -89,9 +78,16 @@ while (quitting == false)
                         break;
                     case 'd':
                     case 'D':
+                        if (playerHand.Count == 2 && decimal.Parse(playerProfile[1]) >= playerBet)
+                        {
+                        playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) - playerBet);
+                        playerBet += playerBet;
+                        savePlayerFile(playerFilePath, playerList);
                         playerHand.Add(DrawCard(cardDeck, rng));
+                        
                         dealerTurn = true;
                         selectionMade = true;
+                        }
                         break;
                     default:
                         break;
@@ -151,10 +147,11 @@ while (quitting == false)
         Console.WriteLine($"~Your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
     }
     savePlayerFile(playerFilePath, playerList);
-    Console.WriteLine($"{playerName}'s Bank: {decimal.Parse(playerProfile[1]):F2}");
+
+    Console.WriteLine($"{playerName}'s Bank: ${decimal.Parse(playerProfile[1]):F2}");
     Console.WriteLine("\nPress any key to continue...");
     Console.ReadKey(true);
-    
+
     // If the player is broke, give them 50 more
     if (decimal.Parse(playerProfile[1]) <= 0m)
     {
@@ -242,6 +239,12 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
             {
                 if (playerNameInput.Equals(playerList[index][0]) == true)
                 {
+                    // If their money count is zeroed, refill to 50
+                    if (decimal.Parse(playerList[index][1]) <= 0m)
+                    {
+                        playerList[index][1] = "50.00";
+                        savePlayerFile(filepath, playerList);
+                    }
                     playerNameCapitalized = char.ToUpperInvariant(playerList[index][0][0]) + playerList[index][0][1..];
                     drawHeader();
                     Console.WriteLine($"Dealer: Ah, right! {playerNameCapitalized}!");
@@ -253,7 +256,7 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
                 }
             }
             drawHeader();
-            List<string> newPlayerProfile = [playerNameInput, "100.00", "0", "0"];
+            List<string> newPlayerProfile = [playerNameInput, "100.00"];
             playerList.Add(newPlayerProfile);
             playerNameCapitalized = char.ToUpperInvariant(playerList[^1][0][0]) + playerList[^1][0][1..];
             savePlayerFile(filepath, playerList);
@@ -408,7 +411,10 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
     if (dealerHand.Count != 0)
     {
         Console.WriteLine($"Dealer's Hand:");
-        Console.Write($"Total: {dealerHandValue}   ");
+        if (dealerTurn == true)
+            Console.Write($"Total: {dealerHandValue}   ");
+        else
+            Console.Write("Total: ?    ");
         foreach ((char, int) card in dealerHand)
         {
             if (card == dealerHand[^1] && dealerTurn == false)
@@ -427,7 +433,13 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
         foreach ((char, int) card in playerHand)
             DisplayCard(card);
         if (dealerTurn == false)
-            Console.WriteLine("\nOptions: <(H)it>   <(S)tand>   <(D)ouble Down>");
+        {
+            Console.Write("\nOptions: <(H)it>   <(S)tand>   ");
+            if (playerHand.Count == 2 && decimal.Parse(playerProfile[1]) >= playerBet)
+                Console.WriteLine("<(D)ouble Down>");
+            else
+                Console.WriteLine();
+        }
         else
             Console.WriteLine("It's the dealer's turn...");
     }
