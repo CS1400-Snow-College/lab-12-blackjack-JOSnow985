@@ -46,6 +46,7 @@ while (quitting == false)
             {
                 playerBlackjackCheck = 2;
                 gameOver = true;
+                Thread.Sleep(1500);
             }
             else
                 playerBlackjackCheck = 1;
@@ -108,61 +109,48 @@ while (quitting == false)
         }
     }
     // Conclusion of the round handling
-    Console.SetCursorPosition(0, Console.CursorTop - 2);
+    Console.SetCursorPosition(0, Console.CursorTop - 1);
+    Console.Write(new string(' ', Console.WindowWidth));
     Console.WriteLine();
     // If the player got blackjack
     if (playerBlackjackCheck == 2)
     {
         decimal winnings = playerBet * 1.5m;
         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
-        Console.WriteLine("Dealer: You got blackjack! That's a 3:2 payout at this table!\n");
-        Console.WriteLine($"~More chips slide towards you, your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
+        Console.WriteLine($"\nBlackjack! You win: ${winnings:F2}");
     }
-    // If the dealer had worse cards but the player busted
-    else if (dealerHandValue < playerHandValue && playerHandValue > 21)
+    // If the player busted, or the dealer beat their hand without busting
+    else if (playerHandValue > 21 || (dealerHandValue > playerHandValue && dealerHandValue <= 21))
     {
-        Console.WriteLine("Dealer: Sorry, the house wins this time.");
-        Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
-    }
-    // If the dealer had better cards and didn't bust
-    else if ((dealerHandValue > playerHandValue && dealerHandValue <= 21) || (dealerHandValue < playerHandValue && playerHandValue > 21))
-    {
-        Console.WriteLine("Dealer: Sorry, the house wins this time.");
-        Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
+        Console.WriteLine($"\nThe house wins, you lost ${playerBet:F2}");
     }
     // If the dealer and the player matched, push
     else if (dealerHandValue == playerHandValue)
     {
         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet);
-        Console.WriteLine("Dealer: A push, at least you didn't lose your bet, right?");
-        Console.WriteLine($"~Your bet of ${playerBet:F2} is returned to your bank~");
+        Console.WriteLine($"\nPush: Your ${playerBet:F2} bet is returned.");
     }
     // Otherwise
     else
     {
         decimal winnings = playerBet;
         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
-        Console.WriteLine("Dealer: That's a win for you, here are your winnings!");
-        Console.WriteLine($"~Your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
+        Console.WriteLine($"\nYou won ${winnings:F2}");
     }
-    Console.WriteLine($"{playerName}'s Bank: ${decimal.Parse(playerProfile[1]):F2}");
-    Console.WriteLine("\nPress any key to continue...");
-    Console.ReadKey(true);
-
     // If the player is broke, give them 50 more
     if (decimal.Parse(playerProfile[1]) <= 0m)
     {
-        drawHeader();
         playerProfile[1] = "50.00";
-        Console.WriteLine("Dealer: Don't worry, we all have runs of bad luck, here's something to keep you playing!");
-        Console.WriteLine("~Your bank has been refilled to $50.00~");
-        Console.WriteLine("\nPress any key to continue...");
-        Console.ReadKey(true);
+        Console.WriteLine("\nYou deposit $50 into your bank so you can keep playing.\nIf this were real you might have had to stop instead!");
     }
 
+    Console.WriteLine($"{playerName}'s Bank now has: ${decimal.Parse(playerProfile[1]):F2}");
+    Console.WriteLine("\nPress any key to continue...");
+    Console.ReadKey(true);
+
     drawHeader();
-    Console.WriteLine("Dealer: Want to play another hand?");
-    Console.WriteLine("~The dealer starts shuffling the cards while waiting for your decision~");
+    Console.WriteLine("Play another hand?");
+    Console.WriteLine($"{playerName}'s Bank now has: ${decimal.Parse(playerProfile[1]):F2}");
     Console.WriteLine("\nOptions: <(Y)es>   <(N)o>");
     bool choiceMade = false;
     while (choiceMade == false)
@@ -224,8 +212,7 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
     while (true)
     {
         drawHeader();
-        Console.WriteLine("~The dealer at the blackjack table flawlessly springs the deck from one hand to the other as you approach~");
-        Console.WriteLine("Dealer: Want to play a hand? What's your name?");
+        Console.WriteLine("Welcome to Console Blackjack, please enter your name!");
         Console.Write("\nYour name:  ");
         string? playerNameInput = Console.ReadLine();
         if (string.IsNullOrEmpty(playerNameInput) == false)
@@ -244,9 +231,8 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
                     }
                     playerNameCapitalized = char.ToUpperInvariant(playerList[index][0][0]) + playerList[index][0][1..];
                     drawHeader();
-                    Console.WriteLine($"Dealer: Ah, right! {playerNameCapitalized}!");
-                    Console.WriteLine($"Dealer: I think you've got ${playerList[index][1]}, right?");
-                    Console.WriteLine($"~several chips glide across the felt, they add up to ${playerList[index][1]}~");
+                    Console.WriteLine($"Returning player: {playerNameCapitalized}");
+                    Console.WriteLine($"{playerNameCapitalized}'s Bank: ${playerList[index][1]}");
                     Console.Write("\nPress any key to continue...");
                     Console.ReadKey(true);
                     return (playerList[index], playerNameCapitalized);
@@ -257,18 +243,16 @@ static (List<string>, string) findPlayer(List<List<string>> playerList, string f
             playerList.Add(newPlayerProfile);
             playerNameCapitalized = char.ToUpperInvariant(playerList[^1][0][0]) + playerList[^1][0][1..];
             savePlayerFile(filepath, playerList);
-            Console.WriteLine($"Dealer: Hm, I don't think you've played at my table before, {playerNameCapitalized}.");
-            Console.WriteLine("Dealer: How about we start you off with a hundred?");
-            Console.WriteLine("~several chips glide across the felt, they add up to $100.00~");
+            Console.WriteLine($"New player: {playerNameCapitalized}");
+            Console.WriteLine($"Starting {playerNameCapitalized}'s Bank at: $100.00");
             Console.Write("\nPress any key to continue...");
             Console.ReadKey(true);
             return (newPlayerProfile, playerNameCapitalized);
         }
         else 
         {
-            Console.WriteLine("\n~The dealer loudly shuffles the deck over your invalid input~");
-            Console.WriteLine("Dealer: Oh, sorry, what was that?");
-            Console.Write("Press any key to try telling him your name again... ");
+            Console.WriteLine("Sorry, we couldn't make that input work!");
+            Console.Write("Press any key to try entering your name again... ");
             Console.ReadKey(true);
         }
     }
@@ -314,14 +298,14 @@ static decimal betPrompt(List<string> playerProfile, string playerName)
     while (true)
     {
         drawHeader();
-        Console.WriteLine("Dealer: How much are you betting this round?\n");
+        Console.WriteLine("How much will you bet?\n");
         Console.WriteLine($"{playerName}'s Bank: ${playerCurrentMoney:F2}");
         Console.WriteLine($"You can bet from $0.01 to ${playerCurrentMoney:F2}");
         Console.Write("Your Bet:  $");
         if (decimal.TryParse(Console.ReadLine(), out decimal playerBet))
         {
             if (playerBet < 0.01m)
-                Console.WriteLine("You have to bet something at least $0.01.");
+                Console.WriteLine("You have to bet at least $0.01.");
             else if (playerBet > playerCurrentMoney)
                 Console.WriteLine("You don't have that much!");
             else
@@ -332,7 +316,7 @@ static decimal betPrompt(List<string> playerProfile, string playerName)
         }
         else
         {
-            Console.WriteLine("That's not a proper bet, please try again.");
+            Console.WriteLine("That input won't work for a bet, please try again!");
         }
         Console.WriteLine("Press any key to continue...");
         Console.ReadKey(true);
