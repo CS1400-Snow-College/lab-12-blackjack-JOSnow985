@@ -21,9 +21,8 @@ while (quitting == false)
     List<(char, int)> dealerHand = [];
     bool gameOver = false;
 
-    // Collect bet and save player file so the bet is taken
+    // Collect bet amount
     decimal playerBet = betPrompt(playerProfile, playerName);
-    savePlayerFile(playerFilePath, playerList);
 
     // Deal initial cards
     while (dealerHand.Count < 2)
@@ -81,7 +80,6 @@ while (quitting == false)
                         {
                         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) - playerBet);
                         playerBet += playerBet;
-                        savePlayerFile(playerFilePath, playerList);
                         playerHand.Add(DrawCard(cardDeck, rng));
                         
                         dealerTurn = true;
@@ -145,8 +143,6 @@ while (quitting == false)
         Console.WriteLine($"~The dealer stacks up an equal amount of chips to your bet and slides them to you~");
         Console.WriteLine($"~Your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
     }
-    savePlayerFile(playerFilePath, playerList);
-
     Console.WriteLine($"{playerName}'s Bank: ${decimal.Parse(playerProfile[1]):F2}");
     Console.WriteLine("\nPress any key to continue...");
     Console.ReadKey(true);
@@ -156,8 +152,7 @@ while (quitting == false)
     {
         drawHeader();
         playerProfile[1] = "50.00";
-        savePlayerFile(playerFilePath, playerList);
-        Console.WriteLine("Dealer: Don't worry, we all have runs of bad luck, you can keep playing!");
+        Console.WriteLine("Dealer: Don't worry, we all have runs of bad luck, here's something to keep you playing!");
         Console.WriteLine("~Your bank has been refilled to $50.00~");
         Console.WriteLine("\nPress any key to continue...");
         Console.ReadKey(true);
@@ -175,8 +170,7 @@ while (quitting == false)
         {
             case 'y':
             case 'Y':
-                choiceMade = true;
-                break;
+                return;
             case 'n':
             case 'N':
                 choiceMade = true;
@@ -188,6 +182,7 @@ while (quitting == false)
     }
     if (quitting)
     {
+        savePlayerFile(playerFilePath, playerList);
         Console.Clear();
         Console.WriteLine("\nGoodbye!");
     }
