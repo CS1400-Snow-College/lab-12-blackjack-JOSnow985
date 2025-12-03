@@ -8,15 +8,15 @@ Random rng = new Random();
 string playerFilePath = "playerFile.csv";
 List<List<string>> playerList = loadPlayerFile(playerFilePath);
 
-// Builds the deck
-List<string> cardDeck = BuildDeck();
-
 // Figure out who is playing
 var (playerProfile, playerName) = findPlayer(playerList, playerFilePath);
 
 bool quitting = false;
 while (quitting == false)
 {
+    // Builds the deck, inside loop so the deck isn't drained over multiple hands
+    List<string> cardDeck = BuildDeck();
+    
     List<(char, int)> playerHand = [];
     List<(char, int)> dealerHand = [];
     bool gameOver = false;
@@ -37,25 +37,29 @@ while (quitting == false)
     while (gameOver == false)
     {
         (playerHandValue, dealerHandValue) = GetHandValues(playerHand, dealerHand);
+        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, playerBet, dealerHand, dealerHandValue, dealerTurn);
+        // Check for blackjack on the first turn
         if (playerBlackjackCheck == 0)
         {
+            // If they landed on 21 their first turn, blackjack
             if (playerHandValue == 21)
             {
-                // pay out 3:2
                 playerBlackjackCheck = 2;
-                return;
+                gameOver = true;
             }
             else
                 playerBlackjackCheck = 1;
         }
+        // Check if the player has busted, if they have, game over
         if (playerHandValue > 21)
         {
             gameOver = true;
-            dealerTurn = true;
+            Thread.Sleep(1500);
         }
         else if (playerHandValue == 21)
             dealerTurn = true;
-        DisplayTable(playerProfile, playerName, playerHand, playerHandValue, playerBet, dealerHand, dealerHandValue, dealerTurn);
+
+        // Player Choices
         if (gameOver == false && dealerTurn == false)
         {
             bool selectionMade = false;
@@ -81,7 +85,6 @@ while (quitting == false)
                         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) - playerBet);
                         playerBet += playerBet;
                         playerHand.Add(DrawCard(cardDeck, rng));
-                        
                         dealerTurn = true;
                         selectionMade = true;
                         }
@@ -91,22 +94,22 @@ while (quitting == false)
                 }
             }
         }
-        else
+        // Dealer Choices
+        else if (gameOver == false && dealerTurn == true)
         {
             Thread.Sleep(1500);
-            if (playerHandValue > 21)
-                continue;
-            else if (playerHandValue == dealerHandValue)
+            // Strict dealer rules, pretty much ignores what the player has
+            if (dealerHandValue >= 17)
                 gameOver = true;
-            else if (dealerHandValue > playerHandValue)
-                gameOver = true;
-            else if (dealerHandValue < playerHandValue)
+            else if (dealerHandValue <= 16)
                 dealerHand.Add(DrawCard(cardDeck, rng));
+            else
+                gameOver = true;
         }
     }
     // Conclusion of the round handling
-    drawHeader();
-    Console.WriteLine($"Dealer's Total: {dealerHandValue}   vs   {playerName}'s Total: {playerHandValue}\n");
+    Console.SetCursorPosition(0, Console.CursorTop - 2);
+    Console.WriteLine();
     // If the player got blackjack
     if (playerBlackjackCheck == 2)
     {
@@ -118,13 +121,13 @@ while (quitting == false)
     // If the dealer had worse cards but the player busted
     else if (dealerHandValue < playerHandValue && playerHandValue > 21)
     {
-        Console.WriteLine("Dealer: Sorry, the house wins this time.\n");
+        Console.WriteLine("Dealer: Sorry, the house wins this time.");
         Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
     }
     // If the dealer had better cards and didn't bust
     else if ((dealerHandValue > playerHandValue && dealerHandValue <= 21) || (dealerHandValue < playerHandValue && playerHandValue > 21))
     {
-        Console.WriteLine("Dealer: Sorry, the house wins this time.\n");
+        Console.WriteLine("Dealer: Sorry, the house wins this time.");
         Console.WriteLine($"~Your bet is claimed by the Dealer. You've lost ${playerBet:F2}~");
     }
     // If the dealer and the player matched, push
@@ -140,7 +143,6 @@ while (quitting == false)
         decimal winnings = playerBet;
         playerProfile[1] = Convert.ToString(decimal.Parse(playerProfile[1]) + playerBet + winnings);
         Console.WriteLine("Dealer: That's a win for you, here are your winnings!");
-        Console.WriteLine($"~The dealer stacks up an equal amount of chips to your bet and slides them to you~");
         Console.WriteLine($"~Your bet ${playerBet:F2} and a ${winnings:F2} payout is added to your bank~");
     }
     Console.WriteLine($"{playerName}'s Bank: ${decimal.Parse(playerProfile[1]):F2}");
@@ -170,7 +172,8 @@ while (quitting == false)
         {
             case 'y':
             case 'Y':
-                return;
+                choiceMade = true;
+                break;
             case 'n':
             case 'N':
                 choiceMade = true;
@@ -194,7 +197,7 @@ while (quitting == false)
 static void drawHeader()
 {
     Console.Clear();
-    Console.WriteLine("\uD83C\uDCA0 \uD83C\uDCA0 \uD83C\uDCA0 BLACKJACK\uD83C\uDCA0 \uD83C\uDCA0 \uD83C\uDCA0");
+    Console.WriteLine("====BLACKJACK====");
     Console.WriteLine();
 }
 
@@ -434,7 +437,7 @@ static void DisplayTable(List<string> playerProfile, string playerName, List<(ch
                 Console.WriteLine();
         }
         else
-            Console.WriteLine("It's the dealer's turn...");
+            Console.WriteLine("\nIt's the dealer's turn...");
     }
     else
         Console.WriteLine("\n");
